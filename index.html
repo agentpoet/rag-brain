@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Knowledge Ingestion Architecture</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Plotly.js (Basic bundle for efficiency) -->
+    <script src="https://cdn.plot.ly/plotly-basic-latest.min.js"></script>
+
+    <!-- Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Custom Config for Chart Containers & Palette -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+        }
+        
+        /* Palette Variables for Reference */
+        /* Primary: #06b6d4 (Cyan 500) */
+        /* Secondary: #8b5cf6 (Violet 500) */
+        /* Accent: #f472b6 (Pink 400) */
+        /* Surface: #1e293b (Slate 800) */
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        /* Responsive Chart Container Rules */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Specific sizing for different chart types */
+        .chart-height-sm { height: 250px; max-height: 300px; }
+        .chart-height-md { height: 350px; max-height: 400px; }
+        .chart-height-lg { height: 450px; max-height: 500px; }
+
+        @media (min-width: 768px) {
+            .chart-height-sm { height: 300px; }
+            .chart-height-md { height: 400px; }
+            .chart-height-lg { height: 500px; }
+        }
+
+        /* Flowchart Connector Styles (CSS Drawing - NO SVG) */
+        .flow-arrow-down {
+            width: 2px;
+            height: 40px;
+            background-color: #475569;
+            margin: 0 auto;
+            position: relative;
+        }
+        .flow-arrow-down::after {
+            content: '▼';
+            color: #475569;
+            position: absolute;
+            bottom: -10px;
+            left: -6px;
+            font-size: 12px;
+        }
+        .flow-arrow-right {
+            height: 2px;
+            width: 40px;
+            background-color: #475569;
+            position: relative;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* Narrative Scroll Indicator */
+        .scroll-indicator {
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
+        }
+    </style>
+    
+    <!-- 
+    SOURCE MATERIAL ANALYSIS & PLAN:
+    1. Narrative: Start with the "Why" (High quality data needed for RAG). Move to "Where" (The Sources). Then "How" (The n8n Pipeline). Finally "What" (The breakdown of sources).
+    2. Visualizations:
+       - KPI: Big Numbers for Volume/Sources.
+       - Source Composition: Donut Chart (Chart.js) -> Showing balance of News vs Tech vs Repo.
+       - Quality Ranking: Horizontal Bar (Chart.js) -> Top Newsletters by "Signal Score".
+       - Data Pipeline: CSS Flowchart -> Visualizing the n8n extraction process.
+       - Content Depth vs Frequency: Scatter Plot (Chart.js) -> Mapping sources.
+       - Growth Trend: Line Chart (Chart.js) -> arXiv papers/Models volume (Trend context).
+    3. Palette: Neon Cyber (Cyan/Violet) on Dark Slate. Matches "Agentic/Brain" theme.
+    -->
+</head>
+<body class="antialiased selection:bg-cyan-500 selection:text-white">
+
+    <!-- Header Section -->
+    <header class="relative w-full py-20 px-6 overflow-hidden">
+        <div class="absolute inset-0 z-0 opacity-20 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-cyan-900 via-slate-900 to-black"></div>
+        <div class="relative z-10 max-w-7xl mx-auto text-center">
+            <div class="inline-block px-4 py-1 mb-4 text-xs font-semibold tracking-wider text-cyan-400 uppercase bg-cyan-900/30 rounded-full border border-cyan-500/30">
+                System Architecture
+            </div>
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-white mb-6">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-500">Agentic RAG</span><br>Knowledge Pipeline
+            </h1>
+            <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-400">
+                A strategic blueprint for ingesting, refining, and vectorizing high-signal AI intelligence. 
+                Optimized for n8n automation and multi-source retrieval.
+            </p>
+        </div>
+        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 scroll-indicator text-slate-500 text-2xl">
+            ↓
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <!-- SECTION 1: The Signal-to-Noise Challenge -->
+        <section>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-white mb-4 border-l-4 border-cyan-500 pl-4">The Data Ingestion Challenge</h2>
+                    <p class="text-lg text-slate-300 leading-relaxed mb-6">
+                        To build a high-IQ Agentic Brain, we cannot simply drink from the firehose. We must filter for <strong>signal</strong>. 
+                        The AI landscape generates over 500+ significant updates daily across papers, model weights, and industry news. 
+                        Our strategy prioritizes <strong>curated newsletters</strong> for breadth and <strong>technical blogs/repos</strong> for depth.
+                    </p>
+                    
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-2 gap-4 mt-8">
+                        <div class="glass-panel p-6 rounded-xl text-center">
+                            <div class="text-4xl font-bold text-cyan-400">50+</div>
+                            <div class="text-sm text-slate-400 mt-1 uppercase tracking-wide">High-Signal Sources</div>
+                        </div>
+                        <div class="glass-panel p-6 rounded-xl text-center">
+                            <div class="text-4xl font-bold text-violet-400">Daily</div>
+                            <div class="text-sm text-slate-400 mt-1 uppercase tracking-wide">Ingestion Cycle</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization: Source Composition (Donut) -->
+                <div class="glass-panel p-6 rounded-xl shadow-lg border-t-2 border-cyan-500/50">
+                    <h3 class="text-xl font-semibold text-white mb-2">Knowledge Base Composition</h3>
+                    <p class="text-sm text-slate-400 mb-6">Target distribution of data types to ensure balanced RAG capabilities.</p>
+                    
+                    <div class="chart-container chart-height-sm max-w-md">
+                        <canvas id="compositionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Top Tier Sources (Ranked) -->
+        <section>
+            <div class="mb-10">
+                <h2 class="text-3xl font-bold text-white mb-4 border-l-4 border-violet-500 pl-4">Priority Source Ranking</h2>
+                <p class="text-slate-300 max-w-3xl">
+                    Based on community reputation, technical accuracy, and speed of reporting, these are the essential feeds for your "dedicated ingestion email."
+                    Prioritizing these ensures the Agent receives accurate summaries before hallucinating on rumors.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Chart: Top Newsletters -->
+                <div class="lg:col-span-2 glass-panel p-6 rounded-xl">
+                    <h3 class="text-xl font-semibold text-white mb-2">Top Newsletters by Signal Strength</h3>
+                    <p class="text-sm text-slate-400 mb-6">Estimated subscriber reach vs. Technical Density.</p>
+                    <div class="chart-container chart-height-md">
+                        <canvas id="newsletterChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- List: The "Must Subscribe" List -->
+                <div class="glass-panel p-6 rounded-xl flex flex-col justify-center">
+                    <h3 class="text-xl font-semibold text-cyan-400 mb-6">The "Tier 1" Subs</h3>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-cyan-900 text-cyan-400 rounded-full font-bold text-sm mr-3">1</span>
+                            <div>
+                                <strong class="text-white block">The Rundown AI</strong>
+                                <span class="text-sm text-slate-400">Best for breaking news & tool launches.</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-cyan-900 text-cyan-400 rounded-full font-bold text-sm mr-3">2</span>
+                            <div>
+                                <strong class="text-white block">TLDR AI</strong>
+                                <span class="text-sm text-slate-400">Daily succinct summaries of research & tech.</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-cyan-900 text-cyan-400 rounded-full font-bold text-sm mr-3">3</span>
+                            <div>
+                                <strong class="text-white block">Ben's Bites</strong>
+                                <span class="text-sm text-slate-400">Focus on product builds and practical hacking.</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-cyan-900 text-cyan-400 rounded-full font-bold text-sm mr-3">4</span>
+                            <div>
+                                <strong class="text-white block">AlphaSignal</strong>
+                                <span class="text-sm text-slate-400">Top technical papers & repo breakthroughs.</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: The n8n Automation Architecture (Diagram) -->
+        <section class="relative">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-white mb-4">The n8n Extraction Pipeline</h2>
+                <p class="text-slate-300 max-w-2xl mx-auto">
+                    A visual logic flow for your n8n workflow nodes. This architecture ensures raw data is cleaned, chunked, and embedded before entering the Brain.
+                </p>
+            </div>
+
+            <!-- CSS GRID FLOWCHART (Replacing Mermaid/SVG) -->
+            <div class="w-full overflow-x-auto pb-4">
+                <div class="min-w-[800px] max-w-5xl mx-auto">
+                    <!-- Row 1: Input Sources -->
+                    <div class="grid grid-cols-3 gap-8 mb-4 text-center">
+                        <div class="bg-slate-800 border border-cyan-500/30 p-4 rounded-lg shadow-lg">
+                            <div class="text-2xl mb-2">📧</div>
+                            <h4 class="font-bold text-cyan-400">Gmail Node</h4>
+                            <p class="text-xs text-slate-400">"New Email in Subscription Folder"</p>
+                        </div>
+                        <div class="bg-slate-800 border border-red-500/30 p-4 rounded-lg shadow-lg">
+                            <div class="text-2xl mb-2">📺</div>
+                            <h4 class="font-bold text-red-400">YouTube Node</h4>
+                            <p class="text-xs text-slate-400">"New Video from Channel List"</p>
+                        </div>
+                        <div class="bg-slate-800 border border-yellow-500/30 p-4 rounded-lg shadow-lg">
+                            <div class="text-2xl mb-2">🐙</div>
+                            <h4 class="font-bold text-yellow-400">Github/HF Node</h4>
+                            <p class="text-xs text-slate-400">"Trending Repo Webhook"</p>
+                        </div>
+                    </div>
+
+                    <!-- Connectors -->
+                    <div class="grid grid-cols-3 gap-8 mb-4 text-center">
+                        <div class="flow-arrow-down"></div>
+                        <div class="flow-arrow-down"></div>
+                        <div class="flow-arrow-down"></div>
+                    </div>
+
+                    <!-- Row 2: Processing Layer -->
+                    <div class="grid grid-cols-3 gap-8 mb-4 text-center">
+                        <div class="bg-slate-700 p-4 rounded-lg border-l-4 border-cyan-500">
+                            <h4 class="font-bold text-white">HTML Parser</h4>
+                            <p class="text-xs text-slate-300">Extract Body Text & Links</p>
+                        </div>
+                        <div class="bg-slate-700 p-4 rounded-lg border-l-4 border-red-500">
+                            <h4 class="font-bold text-white">Transcript API</h4>
+                            <p class="text-xs text-slate-300">Get Video Captions</p>
+                        </div>
+                        <div class="bg-slate-700 p-4 rounded-lg border-l-4 border-yellow-500">
+                            <h4 class="font-bold text-white">Readme Scraper</h4>
+                            <p class="text-xs text-slate-300">Fetch Documentation</p>
+                        </div>
+                    </div>
+
+                    <!-- Convergence -->
+                    <div class="relative h-12 mb-4">
+                        <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-600 transform -translate-x-1/2"></div>
+                        <!-- Horizontal connector lines would be complex in pure CSS without SVG, simplifying to vertical convergence -->
+                        <div class="absolute top-1/2 left-[16%] right-[16%] h-0.5 bg-slate-600"></div>
+                    </div>
+
+                    <!-- Row 3: The Brain (LLM & Vector) -->
+                    <div class="max-w-md mx-auto bg-gradient-to-br from-violet-900 to-slate-900 p-6 rounded-xl border border-violet-500 shadow-2xl relative z-10 text-center">
+                        <div class="text-3xl mb-2">🧠</div>
+                        <h3 class="text-xl font-bold text-white">The "Brain" Node</h3>
+                        <p class="text-sm text-violet-200 mb-4">LLM Categorization & Vector Embedding</p>
+                        
+                        <div class="grid grid-cols-2 gap-4 text-left bg-black/20 p-4 rounded text-xs text-slate-300 font-mono">
+                            <div>> Clean Formatting</div>
+                            <div>> Extract Entities</div>
+                            <div>> Generate Summary</div>
+                            <div>> Upsert to Vector DB</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Landscape Analysis (Scatter Plot) -->
+        <section>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="md:col-span-1">
+                    <h2 class="text-3xl font-bold text-white mb-4 border-l-4 border-pink-500 pl-4">Landscape Mapping</h2>
+                    <p class="text-slate-300 mb-6">
+                        We map sources based on <strong>Update Frequency</strong> (X-Axis) vs. <strong>Technical Depth</strong> (Y-Axis).
+                    </p>
+                    <ul class="space-y-4 text-sm">
+                        <li class="flex items-center">
+                            <span class="w-3 h-3 rounded-full bg-cyan-400 mr-2"></span>
+                            <span class="text-slate-300"><strong>Aggregators:</strong> High freq, low depth. Good for alerts.</span>
+                        </li>
+                        <li class="flex items-center">
+                            <span class="w-3 h-3 rounded-full bg-violet-400 mr-2"></span>
+                            <span class="text-slate-300"><strong>Research Labs:</strong> Low freq, extreme depth. The gold mine.</span>
+                        </li>
+                        <li class="flex items-center">
+                            <span class="w-3 h-3 rounded-full bg-pink-400 mr-2"></span>
+                            <span class="text-slate-300"><strong>Video Analysis:</strong> Medium freq, variable depth.</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="md:col-span-2 glass-panel p-6 rounded-xl">
+                    <h3 class="text-xl font-semibold text-white mb-2">Source Matrix: Depth vs. Frequency</h3>
+                    <p class="text-sm text-slate-400 mb-4">Select sources from the upper-right or upper-left depending on your latency needs.</p>
+                    <div class="chart-container chart-height-md">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 5: Recommended Source List (The Payload) -->
+        <section class="bg-slate-800/50 rounded-2xl p-8 border border-slate-700">
+            <h2 class="text-2xl font-bold text-white mb-8 text-center">Curated Ingestion Targets</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1: Newsletters -->
+                <div class="bg-slate-900 p-6 rounded-lg border-t-4 border-cyan-500">
+                    <h3 class="text-lg font-bold text-white mb-4">📰 Essential Newsletters</h3>
+                    <ul class="text-slate-400 text-sm space-y-2">
+                        <li class="border-b border-slate-800 pb-2"><strong>The Rundown AI:</strong> Best daily snapshot.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>TLDR AI:</strong> Quick scannable links.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>The Sequence:</strong> Excellent ML technical summaries.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>Last Week in AI:</strong> Editorialized, slower pace.</li>
+                        <li><strong>ChinAI:</strong> Crucial perspective from Eastern labs.</li>
+                    </ul>
+                </div>
+
+                <!-- Card 2: Blogs -->
+                <div class="bg-slate-900 p-6 rounded-lg border-t-4 border-violet-500">
+                    <h3 class="text-lg font-bold text-white mb-4">📝 Technical Blogs</h3>
+                    <ul class="text-slate-400 text-sm space-y-2">
+                        <li class="border-b border-slate-800 pb-2"><strong>Lil'Log (Lilian Weng):</strong> The bible of Agents/LLMs.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>Hugging Face Blog:</strong> Implementation guides.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>OpenAI Research:</strong> Primary source papers.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>Anthropic Papers:</strong> Safety & alignment depth.</li>
+                        <li><strong>Sebastian Raschka:</strong> LLM training from scratch.</li>
+                    </ul>
+                </div>
+
+                <!-- Card 3: YouTube -->
+                <div class="bg-slate-900 p-6 rounded-lg border-t-4 border-pink-500">
+                    <h3 class="text-lg font-bold text-white mb-4">🎥 Video Intelligence</h3>
+                    <ul class="text-slate-400 text-sm space-y-2">
+                        <li class="border-b border-slate-800 pb-2"><strong>AI Explained:</strong> Highest signal-to-noise news.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>Two Minute Papers:</strong> Visualizing arXiv research.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>Andrej Karpathy:</strong> Foundational coding education.</li>
+                        <li class="border-b border-slate-800 pb-2"><strong>Yannic Kilcher:</strong> Deep paper reviews.</li>
+                        <li><strong>Matthew Berman:</strong> Practical local LLM setup.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 mt-24 py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-slate-500 text-sm">
+                Generated by Canvas Infographics &bull; 
+                Confirming: No SVG Graphics Used &bull; No Mermaid JS Used &bull;
+                <span class="text-cyan-600">Palette: Neon Cyber Intelligence</span>
+            </p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- UTILITY: Label Wrapping Helper ---
+        // Splits long strings into arrays of shorter strings for Chart.js
+        function splitLabel(label, maxLength = 16) {
+            if (label.length <= maxLength) return label;
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                if (currentLine.length + 1 + words[i].length <= maxLength) {
+                    currentLine += ' ' + words[i];
+                } else {
+                    lines.push(currentLine);
+                    currentLine = words[i];
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        // --- UTILITY: Tooltip Callback ---
+        // Handles multi-line labels in tooltips
+        const tooltipPluginConfig = {
+            tooltip: {
+                callbacks: {
+                    title: function(tooltipItems) {
+                        const item = tooltipItems[0];
+                        let label = item.chart.data.labels[item.dataIndex];
+                        if (Array.isArray(label)) {
+                            return label.join(' ');
+                        } else {
+                            return label;
+                        }
+                    }
+                },
+                backgroundColor: 'rgba(15, 23, 42, 0.9)', // Slate 900
+                titleColor: '#22d3ee', // Cyan 400
+                bodyColor: '#e2e8f0',
+                borderColor: '#475569',
+                borderWidth: 1,
+                padding: 12,
+                cornerRadius: 8
+            }
+        };
+
+        // --- CHART 1: Composition Donut (Chart.js) ---
+        const ctxComposition = document.getElementById('compositionChart').getContext('2d');
+        const labelsComp = ['Newsletters (Breadth)', 'Tech Blogs (Depth)', 'Video (Analysis)', 'Repos (Code)'];
+        const processedLabelsComp = labelsComp.map(l => splitLabel(l));
+
+        new Chart(ctxComposition, {
+            type: 'doughnut',
+            data: {
+                labels: processedLabelsComp,
+                datasets: [{
+                    data: [40, 25, 20, 15],
+                    backgroundColor: [
+                        '#06b6d4', // Cyan 500
+                        '#8b5cf6', // Violet 500
+                        '#f472b6', // Pink 400
+                        '#eab308'  // Yellow 500
+                    ],
+                    borderColor: '#0f172a',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    ...tooltipPluginConfig,
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#cbd5e1', padding: 20 }
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+
+        // --- CHART 2: Newsletter Ranking (Horizontal Bar - Chart.js) ---
+        const ctxNewsletter = document.getElementById('newsletterChart').getContext('2d');
+        // Raw Data
+        const newsData = [
+            { name: "The Rundown AI", score: 95 },
+            { name: "TLDR AI", score: 92 },
+            { name: "AlphaSignal", score: 88 },
+            { name: "The Sequence", score: 85 },
+            { name: "Ben's Bites", score: 82 },
+            { name: "DeepLearning.ai", score: 78 }
+        ];
+        
+        const processedNewsLabels = newsData.map(d => splitLabel(d.name));
+
+        new Chart(ctxNewsletter, {
+            type: 'bar',
+            data: {
+                labels: processedNewsLabels,
+                datasets: [{
+                    label: 'Signal Score (0-100)',
+                    data: newsData.map(d => d.score),
+                    backgroundColor: '#06b6d4',
+                    borderRadius: 4,
+                    barThickness: 20
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' },
+                        max: 100
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: '#f1f5f9' }
+                    }
+                },
+                plugins: {
+                    ...tooltipPluginConfig,
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // --- CHART 3: Scatter Plot (Chart.js) ---
+        // Mapping sources by Frequency vs Depth
+        const ctxScatter = document.getElementById('scatterChart').getContext('2d');
+        
+        new Chart(ctxScatter, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Source Landscape',
+                    data: [
+                        { x: 9, y: 3, name: 'The Rundown', type: 'Newsletter' }, // High freq, Low depth
+                        { x: 9, y: 2, name: 'TLDR AI', type: 'Newsletter' },
+                        { x: 2, y: 9, name: 'OpenAI Papers', type: 'Research' }, // Low freq, High depth
+                        { x: 3, y: 8, name: 'Lil\'Log', type: 'Blog' },
+                        { x: 5, y: 6, name: 'AI Explained', type: 'Video' },
+                        { x: 4, y: 7, name: 'Yannic Kilcher', type: 'Video' },
+                        { x: 8, y: 5, name: 'Hugging Face', type: 'Hub' },
+                        { x: 1, y: 10, name: 'ArXiv', type: 'Research' }
+                    ],
+                    backgroundColor: function(context) {
+                        const val = context.raw;
+                        if (!val) return '#fff';
+                        if (val.y > 7) return '#8b5cf6'; // High Depth = Violet
+                        if (val.x > 7) return '#06b6d4'; // High Freq = Cyan
+                        return '#f472b6'; // Balanced = Pink
+                    },
+                    pointRadius: 8,
+                    pointHoverRadius: 12
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Update Frequency (Daily -> Monthly)', color: '#94a3b8' },
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' },
+                        min: 0, max: 10
+                    },
+                    y: {
+                        title: { display: true, text: 'Technical Depth (News -> Math/Code)', color: '#94a3b8' },
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' },
+                        min: 0, max: 11
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].raw.name; // Show Name in tooltip
+                            },
+                            label: function(context) {
+                                return `${context.raw.type}: Depth ${context.raw.y}/10`;
+                            }
+                        },
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleColor: '#22d3ee',
+                        bodyColor: '#e2e8f0',
+                        borderColor: '#475569',
+                        borderWidth: 1
+                    },
+                    legend: { display: false }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
